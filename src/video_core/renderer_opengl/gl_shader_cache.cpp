@@ -450,7 +450,7 @@ Shader ShaderCacheOpenGL::GetStageProgram(Maxwell::ShaderProgram program) {
 
     // Look up shader in the cache based on address
     const auto cpu_addr{memory_manager.GpuToCpuAddress(address)};
-    Shader shader{cpu_addr ? TryGet(*cpu_addr) : nullptr};
+    Shader shader{cpu_addr ? TryGet(*cpu_addr) : null_shader};
     if (shader) {
         return last_shaders[static_cast<std::size_t>(program)] = shader;
     }
@@ -479,7 +479,12 @@ Shader ShaderCacheOpenGL::GetStageProgram(Maxwell::ShaderProgram program) {
         const std::size_t size_in_bytes = code.size() * sizeof(u64);
         shader = CachedShader::CreateFromCache(params, found->second, size_in_bytes);
     }
-    Register(shader);
+
+    if (cpu_addr) {
+        Register(shader);
+    } else {
+        null_shader = shader;
+    }
 
     return last_shaders[static_cast<std::size_t>(program)] = shader;
 }
@@ -488,7 +493,7 @@ Shader ShaderCacheOpenGL::GetComputeKernel(GPUVAddr code_addr) {
     auto& memory_manager{system.GPU().MemoryManager()};
     const auto cpu_addr{memory_manager.GpuToCpuAddress(code_addr)};
 
-    auto kernel = cpu_addr ? TryGet(*cpu_addr) : nullptr;
+    auto kernel = cpu_addr ? TryGet(*cpu_addr) : null_kernel;
     if (kernel) {
         return kernel;
     }
@@ -509,7 +514,11 @@ Shader ShaderCacheOpenGL::GetComputeKernel(GPUVAddr code_addr) {
         kernel = CachedShader::CreateFromCache(params, found->second, size_in_bytes);
     }
 
-    Register(kernel);
+    if (cpu_addr) {
+        Register(kernel);
+    } else {
+        null_kernel = kernel;
+    }
     return kernel;
 }
 
